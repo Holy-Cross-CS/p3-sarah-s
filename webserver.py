@@ -643,13 +643,13 @@ def handle_http_connection(conn):
             stats.active_connections -= 1
 
 # Implement threading correctly by using locks and potentially condition variables to handle waiting for version updates.
-condition = threading.Condition()
+# condition = threading.Condition()
 
-with condition:
-    while some_condition:
-        condition.wait()
-    # Modify data
-    condition.notify_all()
+# with condition:
+#     while some_condition:
+#         condition.wait()
+#     # Modify data
+#     condition.notify_all()
 
 
 # This remainder of this file is the main program, which listens on a server
