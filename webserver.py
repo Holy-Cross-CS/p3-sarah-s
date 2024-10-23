@@ -405,10 +405,15 @@ def handle_one_http_request(conn):
     if req.method == "GET":
         resp = handle_http_get(req, conn)
     elif req.method == "POST" or req.method == "PUT":
-        log("HTTP method '%s' is not yet supported by this server" % (req.method))
-        resp = Response("405 METHOD NOT ALLOWED",
-                "text/plain",
-                "PUT and POST methods not yet supported")
+        if req.body is not None:  # Check if body data is present
+            resp = handle_post_message(conn, req.body)  # Call with body data
+        else:
+            resp = Response("400 BAD REQUEST", "text/plain", "Body required for POST/PUT request")
+                                                                                                                 # maybe correct?
+        # log("HTTP method '%s' is not yet supported by this server" % (req.method))
+        # resp = Response("405 METHOD NOT ALLOWED",
+        #         "text/plain",
+        #         "PUT and POST methods not yet supported")
     else:
         log("HTTP method '%s' is not recognized by this server" % (req.method))
         resp = Response("405 METHOD NOT ALLOWED",
@@ -579,8 +584,19 @@ def handle_http_get(req, conn):
         return handle_http_get_whoami(req, conn)
     elif req.path == "/quote":
         resp = handle_http_get_quote()
+    elif req.path.startswith("/whisper/topics?version"):
+        version = int(req.path.split('=')[-1])
+        print(version)
+        resp = handle_get_topics(conn, version)
+    # else:
+    #     resp = handle_http_get_file(req.path)
+    elif req.method == "POST":
+        if req.path == "/whisper/messages":
+            resp = handle_post_message(conn, req.body)
+        else:
+            resp = Response("404 NOT FOUND", "text/plain", "No such POST route")
     else:
-        resp = handle_http_get_file(req.path)
+        resp = Response("405 METHOD NOT ALLOWED", "text/plain", "Unrecognized method: " + req.method)
     return resp
 
 # modifying HTTP request handling to parse and respond to specific paths like /whisper/topics and /whisper/messages.
@@ -589,11 +605,12 @@ def handle_get_topics(connection, version):
         if topics_version_num < version:
             while topics_version_num < version:
                 #Implement waiting mechanism
+                print("Still waiting!")
                 pass 
-            response = f"{topics_version_num}\n"
-            for topic, data in topics.items():
-                response += f"{len(data['messages'])} {data['likes']} {topic}\n"
-    send_http_response(connection, "200 OK", "text/plain", response)
+        response = f"{topics_version_num}\n"
+        for topic, data in topics.items():
+            response += f"{len(data['messages'])} {data['likes']} {topic}\n"
+        return Response("200 OK", "text/plain", response.encode())
 
 # Example POST /whisper/messages handler:
 def handle_post_message(connection, body):
@@ -610,7 +627,7 @@ def handle_post_message(connection, body):
         global topics_version_numb
         topics_version_num += 1
     
-    send_http_response(connection, "200 OK", "text/plain", "success")
+        return Response("200 OK", "text/plain", "success")                                         # IS THIS RIGHT???
 
 
 
